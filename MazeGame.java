@@ -6,6 +6,9 @@ class MazeGame {
     private static final char PLAYER = 'P';
     private static final char TREASURE = 'T';
     private static final char AI_AGENT = 'A';
+    private static final char PENALTY = 'X';
+    Random random = new Random();
+
 
     private char[][] maze;
     private int playerRow;
@@ -13,8 +16,9 @@ class MazeGame {
     private int aiAgentRow;
     private int aiAgentCol;
 
-    public MazeGame(int rows, int cols, int numObstacles) {
-        maze = generateMaze(rows, cols, numObstacles);
+    public MazeGame(int rows, int cols, int numObstacles,int numPenalties) {
+        maze = generateMaze(rows, cols, numObstacles, numPenalties);
+
         initializePlayers();
         placeTreasures(5); // Adjust the number of treasures as needed
     }
@@ -22,8 +26,9 @@ class MazeGame {
     
     
 
-    private char[][] generateMaze(int rows, int cols, int numObstacles) {
+    private char[][] generateMaze(int rows, int cols, int numObstacles, int numPenalties) {
         char[][] newMaze = new char[rows][cols];
+        Random random = new Random();
     
         // Initialize the maze with empty cells
         for (int i = 0; i < rows; i++) {
@@ -39,9 +44,19 @@ class MazeGame {
             newMaze[0][j] = WALL;
             newMaze[rows - 1][j] = WALL;
         }
+        for (int i = 0; i < numPenalties; i++) {
+            int penaltyRow, penaltyCol;
+            do {
+                penaltyRow = random.nextInt(rows - 2) + 1;
+                penaltyCol = random.nextInt(cols - 2) + 1;
+            } while (newMaze[penaltyRow][penaltyCol] != EMPTY_CELL);
+    
+            newMaze[penaltyRow][penaltyCol] = PENALTY;
+        }
+    
     
         // Add random obstacles
-        Random random = new Random();
+        
         for (int i = 0; i < numObstacles; i++) {
             int obstacleRow, obstacleCol;
             do {
@@ -69,27 +84,59 @@ class MazeGame {
     }
 
     private void placeTreasures(int numTreasures) {
-        Random random = new Random();
+        int emptyCellCount = countEmptyCells();
+    
+        if (emptyCellCount == 0) {
+            System.out.println("No empty cells to place treasures.");
+            return;
+        }
+    
+        if (emptyCellCount < numTreasures) {
+            System.out.println("Not enough empty cells to place the specified number of treasures.");
+            numTreasures = emptyCellCount;
+        }
+    
         for (int i = 0; i < numTreasures; i++) {
             int row, col;
             do {
                 row = random.nextInt(maze.length - 2) + 1;
                 col = random.nextInt(maze[0].length - 2) + 1;
             } while (maze[row][col] != EMPTY_CELL);
-
+    
             maze[row][col] = TREASURE;
+            emptyCellCount--;
         }
     }
+    private int countEmptyCells() {
+        int count = 0;
+        for (int i = 1; i < maze.length - 1; i++) {
+            for (int j = 1; j < maze[0].length - 1; j++) {
+                if (maze[i][j] == EMPTY_CELL) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    
+    
 
     private void printMaze() {
         for (int i = 0; i < maze.length; i++) {
             for (int j = 0; j < maze[0].length; j++) {
-                System.out.print(maze[i][j] + " ");
+                char displayChar = maze[i][j];
+                if (displayChar == PENALTY) {
+                    // Replace the display character for penalties with a space
+                    displayChar = EMPTY_CELL;
+                }
+                System.out.print(displayChar + " ");
             }
             System.out.println();
         }
         System.out.println();
     }
+    
+
     private boolean isValidMove(int row, int col) {
         return row >= 0 && row < maze.length && col >= 0 && col < maze[0].length && maze[row][col] != WALL;
     }
@@ -122,6 +169,28 @@ class MazeGame {
         } else {
             System.out.println("Invalid move. You cannot go outside the maze or through walls.");
         }
+        if (maze[playerRow][playerCol] == PENALTY) {
+            System.out.println("Penalty! Moving back to another empty place.");
+            moveBackToEmptyPlace(playerRow, playerCol);
+        }
+    }
+    private void moveBackToEmptyPlace(int currentRow, int currentCol) {
+        int newRow, newCol;
+        do {
+            newRow = random.nextInt(maze.length - 2) + 1;
+            newCol = random.nextInt(maze[0].length - 2) + 1;
+        } while (maze[newRow][newCol] != EMPTY_CELL);
+    
+        maze[currentRow][currentCol] = EMPTY_CELL;
+        maze[newRow][newCol] = currentRow == playerRow ? PLAYER : AI_AGENT;
+    
+        if (currentRow == playerRow) {
+            playerRow = newRow;
+            playerCol = newCol;
+        } else {
+            aiAgentRow = newRow;
+            aiAgentCol = newCol;
+        }
     }
     private void performMove(int newRow, int newCol) {
         if (maze[newRow][newCol] == TREASURE) {
@@ -138,6 +207,9 @@ class MazeGame {
         List<Cell> path = findPathAStar();
     
         if (path != null && !path.isEmpty()) {
+
+
+            
             // Check if the AI agent and player are in the same cell
             if (aiAgentRow == playerRow && aiAgentCol == playerCol) {
                 System.out.println("AI agent is waiting for its next turn.");
@@ -154,7 +226,20 @@ class MazeGame {
                     aiAgentCol = nextCell.col;
                     maze[aiAgentRow][aiAgentCol] = AI_AGENT;
                 }
+
+      // Check if the next cell is a penalty
+        if (maze[aiAgentRow][aiAgentCol] == PENALTY) {
+            System.out.println("AI agent received a penalty! Moving back to another empty place.");
+            moveBackToEmptyPlace(aiAgentRow, aiAgentCol);
+        } else {
+            maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
+            aiAgentRow = nextCell.row;
+            aiAgentCol = nextCell.col;
+            maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+        }
             }
+     
+            
         }
     }
     
@@ -283,6 +368,24 @@ class MazeGame {
         }
     }
 
+    public void removeTreasure(int row, int col) {
+        if (maze[row][col] == TREASURE) {
+            maze[row][col] = EMPTY_CELL;
+        }
+    }
+    
+    public boolean allTreasuresFound() {
+        for (int i = 0; i < maze.length; i++) {
+            for (int j = 0; j < maze[0].length; j++) {
+                if (maze[i][j] == TREASURE) {
+                    return false; // There is at least one treasure remaining
+                }
+            }
+        }
+        return true; // All treasures have been found
+    }
+    
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -295,7 +398,12 @@ class MazeGame {
         System.out.print("Enter the number of obstacles: ");
         int numObstacles = scanner.nextInt();
 
-        MazeGame mazeGame = new MazeGame(rows, cols, numObstacles); 
+        System.out.print("Enter the number of penalties: ");
+        int numOfPenalties = scanner.nextInt();
+
+
+
+        MazeGame mazeGame = new MazeGame(rows, cols, numObstacles,numOfPenalties); 
 
         while (true) {
             mazeGame.printMaze();
@@ -309,6 +417,11 @@ class MazeGame {
             // Check if the player has reached a treasure
             if (mazeGame.maze[mazeGame.playerRow][mazeGame.playerCol] == TREASURE) {
                 System.out.println("Congratulations! You found a treasure.");
+                break;
+            }
+
+            if (mazeGame.allTreasuresFound()) {
+                System.out.println("Congratulations! You found all treasures. Game over!");
                 break;
             }
         }
