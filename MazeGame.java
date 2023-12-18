@@ -1,11 +1,38 @@
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
+import javafx.scene.Node;
+
 import java.util.*;
 
-class MazeGame {
+public class MazeGame extends Application {
+
+    public MazeGame() {
+    }
+
+    private static final int MAZE_SIZE = 10;
+    private static final int NUM_OBSTACLES = 15;
+    private static final int NUM_PENALTIES = 5;
+    private static final int NUM_TREASURES = 5;
+
     private static final char EMPTY_CELL = '.';
     private static final char WALL = '#';
     private static final char PLAYER = 'P';
     private static final char TREASURE = 'T';
     private static final char AI_AGENT = 'A';
+    private static final char PENALTY = 'X';
+
+    private Random random = new Random();
 
     private char[][] maze;
     private int playerRow;
@@ -13,24 +40,335 @@ class MazeGame {
     private int aiAgentRow;
     private int aiAgentCol;
 
-    public MazeGame(int rows, int cols, int numObstacles) {
-        maze = generateMaze(rows, cols, numObstacles);
-        initializePlayers();
-        placeTreasures(5); // Adjust the number of treasures as needed
+    public static void main(String[] args) {
+        launch(StartMenu.class);
     }
-    
-    
-    
 
-    private char[][] generateMaze(int rows, int cols, int numObstacles) {
+    private int playerScore = 0;
+    private int aiScore = 0;
+
+    @Override
+    public void start(Stage primaryStage) {
+
+        Image icon = new Image("file:coin2.png");
+        primaryStage.getIcons().add(icon);
+
+        maze = generateMaze(MAZE_SIZE, MAZE_SIZE, NUM_OBSTACLES, NUM_PENALTIES);
+        initializePlayers();
+        placeTreasures(NUM_TREASURES);
+
+        GridPane mazeGrid = createMazeGrid();
+        mazeGrid.setFocusTraversable(true);
+        updateMazeGrid(mazeGrid);
+
+
+
+        List<Image> icons = primaryStage.getIcons();
+        System.out.println("Number of icons added: " + icons.size());
+
+        Label headerLabel = new Label("Treasure Hunt");
+        headerLabel.setStyle("-fx-font-size: 30; -fx-font-family: 'Bookman Old Style'; -fx-font-weight: bold;");
+
+
+        Button restartButton = createRestartButton(primaryStage);
+
+        Button backToStartButton = new Button("Go Back to Start Menu");
+        backToStartButton.setStyle("-fx-focus-traversable: false;");
+        backToStartButton.setOnAction(e -> {
+            primaryStage.close();
+            StartMenu startMenu = new StartMenu();
+            startMenu.start(new Stage());
+        });
+
+
+        Button exitButton = new Button("Exit");
+        exitButton.setStyle("-fx-focus-traversable: false;");
+        exitButton.setOnAction(e -> primaryStage.close());
+
+
+        HBox buttonsHBox = new HBox(5);
+        buttonsHBox.setAlignment(Pos.CENTER);
+        buttonsHBox.getChildren().addAll(restartButton, backToStartButton, exitButton);
+
+
+        VBox vBox = new VBox(10);
+        vBox.getChildren().addAll(headerLabel, buttonsHBox, mazeGrid);
+        vBox.setAlignment(Pos.CENTER);
+        vBox.setBackground(Background.fill(Color.LIMEGREEN));
+
+        StackPane root = new StackPane();
+        root.getChildren().add(vBox);
+
+        Scene scene = new Scene(root, 610, 700);
+
+
+        primaryStage.setResizable(false);
+
+        mazeGrid.setFocusTraversable(true);
+
+        scene.setOnKeyPressed(event -> {
+            KeyCode code = event.getCode();
+            String direction = null;
+
+            switch (code) {
+                case UP:
+                    direction = "up";
+                    break;
+                case DOWN:
+                    direction = "down";
+                    break;
+                case LEFT:
+                    direction = "left";
+                    break;
+                case RIGHT:
+                    direction = "right";
+                    break;
+            }
+
+            if (direction != null) {
+                movePlayer(direction);
+                moveAiAgent();
+                updateMazeGrid(mazeGrid);
+
+                if (maze[playerRow][playerCol] == TREASURE) {
+                    System.out.println("Congratulations! You found a treasure.");
+                    playerScore++;
+                }
+
+                if (maze[aiAgentRow][aiAgentCol] == TREASURE) {
+                    System.out.println("AI agent found a treasure.");
+                    aiScore++;
+                }
+
+                if (allTreasuresFound()) {
+                    printGameResult(primaryStage);
+                }
+            }
+        });
+
+        primaryStage.setTitle("Maze Game");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+
+
+    private Button createRestartButton(Stage primaryStage) {
+        Button restartButton = new Button("Restart Game");
+        restartButton.setStyle("-fx-focus-traversable: false;");
+        restartButton.setOnAction(e -> {
+            aiScore = 0;
+            playerScore = 0;
+            primaryStage.close();
+            start(new Stage());
+        });
+
+        return restartButton;
+    }
+
+
+    private void printGameResult(Stage primaryStage) {
+        System.out.println("Game Over!");
+
+        System.out.println("Player Score: " + playerScore);
+        System.out.println("AI Score: " + aiScore);
+
+        if (playerScore > aiScore) {
+            System.out.println("You won!");
+        } else if (aiScore > playerScore) {
+            System.out.println("AI won!");
+        } else {
+            System.out.println("It's a tie!");
+        }
+
+        Stage scoreChartStage = new Stage();
+        scoreChartStage.setTitle("Score Chart");
+
+
+        Button restartButton = new Button("Restart Game");
+        restartButton.setStyle("-fx-focus-traversable: false; -fx-font-family: 'Bookman Old Style'; -fx-font-size: 14;");
+        restartButton.setOnAction(e -> {
+            aiScore = 0;
+            playerScore = 0;
+            scoreChartStage.close();
+            primaryStage.close();
+            start(new Stage());
+        });
+
+
+        Button exitButton = new Button("Exit Game");
+        exitButton.setStyle("-fx-focus-traversable: false; -fx-font-family: 'Bookman Old Style'; -fx-font-size: 14;");
+        exitButton.setOnAction(e -> {
+            primaryStage.close();
+            scoreChartStage.close();
+            Platform.exit();
+        });
+
+
+
+
+        Image scoreTableBackground = new Image("file:assets/pngwing.com (12).png");
+        BackgroundImage background = new BackgroundImage(scoreTableBackground, BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT, BackgroundPosition.DEFAULT, BackgroundSize.DEFAULT);
+
+
+        Label headerLabel = new Label("Score Chart");
+        headerLabel.setStyle("-fx-font-size: 60; -fx-font-weight: bold; -fx-font-family: 'Bookman Old Style'");
+
+
+        Label playerScoreLabel = new Label("Player Score: " + playerScore);
+        playerScoreLabel.setStyle("-fx-font-size: 16;");
+
+
+        Label aiScoreLabel = new Label("AI Score: " + aiScore);
+        aiScoreLabel.setStyle("-fx-font-size: 16; -fx-font-family: 'Bookman Old Style'");
+
+
+        Label winnerLabel = new Label();
+        winnerLabel.setStyle("-fx-font-size: 30; -fx-font-weight: bold; -fx-font-family: 'Bookman Old Style'");
+
+
+        if (playerScore > aiScore) {
+            winnerLabel.setText("You won!");
+        } else if (aiScore > playerScore) {
+            winnerLabel.setText("AI won!");
+        } else {
+            winnerLabel.setText("It's a tie!");
+        }
+
+
+        VBox layout = new VBox(10);
+        layout.setAlignment(Pos.CENTER);
+        layout.setBackground(new Background(background));
+        layout.getChildren().addAll(headerLabel, playerScoreLabel, aiScoreLabel, winnerLabel, restartButton, exitButton);
+
+        Scene scoreChartScene = new Scene(layout, 700, 550);
+        scoreChartStage.setResizable(false);
+
+        scoreChartStage.setScene(scoreChartScene);
+
+
+        scoreChartStage.show();
+    }
+
+
+    private GridPane createMazeGrid() {
+        GridPane mazeGrid = new GridPane();
+        mazeGrid.setHgap(1);
+        mazeGrid.setVgap(1);
+
+        int cellSize = 60;
+
+        for (int i = 0; i < MAZE_SIZE; i++) {
+            for (int j = 0; j < MAZE_SIZE; j++) {
+                Rectangle cell = new Rectangle(cellSize, cellSize);
+                cell.setStroke(Color.BLACK);
+
+                mazeGrid.add(cell, j, i);
+            }
+        }
+
+        return mazeGrid;
+    }
+
+
+    private void updateMazeGrid(GridPane mazeGrid) {
+        mazeGrid.getChildren().clear();
+
+        for (int i = 0; i < MAZE_SIZE; i++) {
+            for (int j = 0; j < MAZE_SIZE; j++) {
+                char cellType = maze[i][j];
+
+                Node cellNode;
+
+                switch (cellType) {
+                    case WALL:
+                        cellNode = createColoredRectangle(Color.BLACK);
+                        break;
+                    case PLAYER:
+                        cellNode = createImageView("file:assets/player3.png");
+                        break;
+                    case AI_AGENT:
+                        cellNode = createImageView("file:assets/ai3.png");
+                        break;
+                    case TREASURE:
+                        cellNode = createImageView("file:assets/treasure3.png");
+                        break;
+                    case PENALTY:
+                        cellNode = createColoredRectangle(Color.GRAY);
+                        break;
+                    default:
+                        cellNode = createImageView("file:assets/blank.png");
+                        break;
+                }
+
+                mazeGrid.add(cellNode, j, i);
+            }
+        }
+    }
+
+    private Rectangle createColoredRectangle(Color color) {
+        Rectangle rectangle = new Rectangle(60, 60, color);
+        rectangle.setStroke(Color.BLACK);
+        return rectangle;
+    }
+
+    private ImageView createImageView(String imagePath) {
+        ImageView imageView = new ImageView(new Image(imagePath));
+        imageView.setFitWidth(60);
+        imageView.setFitHeight(60);
+        return imageView;
+    }
+
+
+    private void gameLoop(GridPane mazeGrid) {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            Platform.runLater(() -> updateMazeGrid(mazeGrid));
+
+            System.out.print("Enter direction for player (up/down/left/right): ");
+            String playerDirection = scanner.next();
+            movePlayer(playerDirection);
+
+            moveAiAgent();
+
+
+            if (maze[playerRow][playerCol] == TREASURE) {
+                System.out.println("Congratulations! You found a treasure.");
+                break;
+            }
+
+            if (allTreasuresFound()) {
+                System.out.println("Congratulations! You found all treasures. Game over!");
+                break;
+            }
+
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        scanner.close();
+    }
+
+    public MazeGame(int rows, int cols, int numObstacles, int numPenalties) {
+        maze = generateMaze(rows, cols, numObstacles, numPenalties);
+
+        initializePlayers();
+        placeTreasures(5);
+    }
+
+    private char[][] generateMaze(int rows, int cols, int numObstacles, int numPenalties) {
         char[][] newMaze = new char[rows][cols];
-    
-        // Initialize the maze with empty cells
+        Random random = new Random();
+
+
         for (int i = 0; i < rows; i++) {
             Arrays.fill(newMaze[i], EMPTY_CELL);
         }
-    
-        // Add walls on borders
+
         for (int i = 0; i < rows; i++) {
             newMaze[i][0] = WALL;
             newMaze[i][cols - 1] = WALL;
@@ -39,22 +377,30 @@ class MazeGame {
             newMaze[0][j] = WALL;
             newMaze[rows - 1][j] = WALL;
         }
-    
-        // Add random obstacles
-        Random random = new Random();
+        for (int i = 0; i < numPenalties; i++) {
+            int penaltyRow, penaltyCol;
+            do {
+                penaltyRow = random.nextInt(rows - 2) + 1;
+                penaltyCol = random.nextInt(cols - 2) + 1;
+            } while (newMaze[penaltyRow][penaltyCol] != EMPTY_CELL);
+
+            newMaze[penaltyRow][penaltyCol] = PENALTY;
+        }
+
+
         for (int i = 0; i < numObstacles; i++) {
             int obstacleRow, obstacleCol;
             do {
                 obstacleRow = random.nextInt(rows - 2) + 1;
                 obstacleCol = random.nextInt(cols - 2) + 1;
             } while (newMaze[obstacleRow][obstacleCol] != EMPTY_CELL);
-    
+
             newMaze[obstacleRow][obstacleCol] = WALL;
         }
-    
+
         return newMaze;
     }
-    
+
 
     private void initializePlayers() {
         Random random = new Random();
@@ -69,7 +415,18 @@ class MazeGame {
     }
 
     private void placeTreasures(int numTreasures) {
-        Random random = new Random();
+        int emptyCellCount = countEmptyCells();
+
+        if (emptyCellCount == 0) {
+            System.out.println("No empty cells to place treasures.");
+            return;
+        }
+
+        if (emptyCellCount < numTreasures) {
+            System.out.println("Not enough empty cells to place the specified number of treasures.");
+            numTreasures = emptyCellCount;
+        }
+
         for (int i = 0; i < numTreasures; i++) {
             int row, col;
             do {
@@ -78,27 +435,47 @@ class MazeGame {
             } while (maze[row][col] != EMPTY_CELL);
 
             maze[row][col] = TREASURE;
+            emptyCellCount--;
         }
     }
+
+    private int countEmptyCells() {
+        int count = 0;
+        for (int i = 1; i < maze.length - 1; i++) {
+            for (int j = 1; j < maze[0].length - 1; j++) {
+                if (maze[i][j] == EMPTY_CELL) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
 
     private void printMaze() {
         for (int i = 0; i < maze.length; i++) {
             for (int j = 0; j < maze[0].length; j++) {
-                System.out.print(maze[i][j] + " ");
+                char displayChar = maze[i][j];
+                if (displayChar == PENALTY) {
+                    displayChar = EMPTY_CELL;
+                }
+                System.out.print(displayChar + " ");
             }
             System.out.println();
         }
         System.out.println();
     }
+
+
     private boolean isValidMove(int row, int col) {
         return row >= 0 && row < maze.length && col >= 0 && col < maze[0].length && maze[row][col] != WALL;
     }
-    
+
 
     private void movePlayer(String direction) {
         int newRow = playerRow;
         int newCol = playerCol;
-    
+
         switch (direction.toLowerCase()) {
             case "up":
                 newRow--;
@@ -116,16 +493,58 @@ class MazeGame {
                 System.out.println("Invalid direction. Please enter 'up', 'down', 'left', or 'right'.");
                 return;
         }
-    
+
         if (isValidMove(newRow, newCol)) {
+            if (maze[newRow][newCol] == PENALTY) {
+                System.out.println("Player received a penalty! Moving away from the closest treasures.");
+                moveAwayFromTreasures(playerRow, playerCol);
+                return;
+            }
+
             performMove(newRow, newCol);
         } else {
             System.out.println("Invalid move. You cannot go outside the maze or through walls.");
         }
     }
+
+    private void moveAwayFromTreasures(int row, int col) {
+        Cell closestTreasure = findNearestTreasure(row, col);
+
+        if (closestTreasure != null) {
+            int newRow = row;
+            int newCol = col;
+
+            int rowDifference = closestTreasure.row - row;
+            int colDifference = closestTreasure.col - col;
+
+
+            newRow = row + Integer.compare(row, closestTreasure.row) * 3;
+            newCol = col + Integer.compare(col, closestTreasure.col) * 3;
+
+
+            newRow = Math.max(1, Math.min(newRow, maze.length - 2));
+            newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+
+
+            if (row == playerRow && col == playerCol) {
+                maze[playerRow][playerCol] = EMPTY_CELL;
+                playerRow = newRow;
+                playerCol = newCol;
+                maze[playerRow][playerCol] = PLAYER;
+            } else if (row == aiAgentRow && col == aiAgentCol) {
+                maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
+                aiAgentRow = newRow;
+                aiAgentCol = newCol;
+                maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+            }
+        }
+    }
+
+
     private void performMove(int newRow, int newCol) {
         if (maze[newRow][newCol] == TREASURE) {
             System.out.println("Congratulations! You found a treasure.");
+            playerScore++;
         }
 
         maze[playerRow][playerCol] = EMPTY_CELL;
@@ -136,80 +555,84 @@ class MazeGame {
 
     private void moveAiAgent() {
         List<Cell> path = findPathAStar();
-    
+
         if (path != null && !path.isEmpty()) {
-            // Check if the AI agent and player are in the same cell
-            if (aiAgentRow == playerRow && aiAgentCol == playerCol) {
+
+            Cell nextCell = path.get(0);
+
+
+            if (nextCell.row == playerRow && nextCell.col == playerCol) {
                 System.out.println("AI agent is waiting for its next turn.");
             } else {
-                // Move the AI agent to the next cell in the path
-                Cell nextCell = path.get(0);
-    
-                // Check if the next cell is occupied by the player
-                if (nextCell.row == playerRow && nextCell.col == playerCol) {
-                    System.out.println("AI agent is waiting for its next turn.");
-                } else {
-                    maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
-                    aiAgentRow = nextCell.row;
-                    aiAgentCol = nextCell.col;
-                    maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+
+                if (maze[nextCell.row][nextCell.col] == PENALTY) {
+                    System.out.println("AI agent received a penalty! Moving away from the closest treasures.");
+                    moveAwayFromTreasures(aiAgentRow, aiAgentCol);
+                    return;
                 }
+                if (maze[nextCell.row][nextCell.col] == TREASURE) {
+                    System.out.println("AI agent found a treasure.");
+                    aiScore++;
+                }
+
+                maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
+                aiAgentRow = nextCell.row;
+                aiAgentCol = nextCell.col;
+                maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+
             }
         }
     }
-    
-    
-    
+
+
     private List<Cell> findPathAStar() {
         PriorityQueue<Cell> openSet = new PriorityQueue<>(Comparator.comparingInt(cell -> cell.fScore));
         Map<Cell, Cell> cameFrom = new HashMap<>();
         Map<Cell, Integer> gScore = new HashMap<>();
-    
+
         Cell start = new Cell(aiAgentRow, aiAgentCol);
-        Cell goal = findNearestTreasure();
-    
+        Cell goal = findNearestTreasure(aiAgentRow, aiAgentCol);
+
         if (goal == null) {
-            return Collections.emptyList(); // No treasures left
+            return Collections.emptyList();
         }
-    
+
         gScore.put(start, 0);
         start.fScore = heuristicCostEstimate(start, goal);
         openSet.add(start);
-    
+
         while (!openSet.isEmpty()) {
             Cell current = openSet.poll();
-    
+
             if (current.equals(goal)) {
                 return reconstructPath(cameFrom, current);
             }
-    
+
             for (Cell neighbor : getNeighbors(current)) {
                 int tentativeGScore = gScore.getOrDefault(current, Integer.MAX_VALUE) + 1;
-    
+
                 if (tentativeGScore < gScore.getOrDefault(neighbor, Integer.MAX_VALUE)) {
                     cameFrom.put(neighbor, current);
                     gScore.put(neighbor, tentativeGScore);
                     neighbor.fScore = tentativeGScore + heuristicCostEstimate(neighbor, goal);
-    
+
                     if (!openSet.contains(neighbor)) {
                         openSet.add(neighbor);
                     }
                 }
             }
         }
-    
-        return Collections.emptyList(); // No path found
+
+        return Collections.emptyList();
     }
-    
-    
+
 
     private int heuristicCostEstimate(Cell current, Cell goal) {
-        // A* heuristic: Manhattan distance with tie-breaker for straight movements
         int dx = Math.abs(current.row - goal.row);
         int dy = Math.abs(current.col - goal.col);
         return dx + dy + Math.min(dx, dy);
     }
-    
+
 
     private List<Cell> reconstructPath(Map<Cell, Cell> cameFrom, Cell current) {
         List<Cell> path = new ArrayList<>();
@@ -223,24 +646,24 @@ class MazeGame {
 
     private List<Cell> getNeighbors(Cell cell) {
         List<Cell> neighbors = new ArrayList<>();
-    
+
         int[] dr = {-1, 1, 0, 0};
         int[] dc = {0, 0, -1, 1};
-    
+
         for (int i = 0; i < 4; i++) {
             int newRow = cell.row + dr[i];
             int newCol = cell.col + dc[i];
-    
+
             if (isValidMove(newRow, newCol)) {
                 neighbors.add(new Cell(newRow, newCol));
             }
         }
-    
+
         return neighbors;
     }
-    
 
-    private Cell findNearestTreasure() {
+
+    private Cell findNearestTreasure(int row, int col) {
         List<Cell> treasures = new ArrayList<>();
         for (int i = 0; i < maze.length; i++) {
             for (int j = 0; j < maze[0].length; j++) {
@@ -254,8 +677,8 @@ class MazeGame {
             return null;
         }
 
-        // Find the nearest treasure (using Manhattan distance)
-        treasures.sort(Comparator.comparingInt(cell -> Math.abs(aiAgentRow - cell.row) + Math.abs(aiAgentCol - cell.col)));
+
+        treasures.sort(Comparator.comparingInt(cell -> Math.abs(row - cell.row) + Math.abs(col - cell.col)));
         return treasures.get(0);
     }
 
@@ -283,36 +706,22 @@ class MazeGame {
         }
     }
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+    public void removeTreasure(int row, int col) {
+        if (maze[row][col] == TREASURE) {
+            maze[row][col] = EMPTY_CELL;
+        }
+    }
 
-        System.out.print("Enter the number of rows: ");
-        int rows = scanner.nextInt();
-
-        System.out.print("Enter the number of columns: ");
-        int cols = scanner.nextInt();
-
-        System.out.print("Enter the number of obstacles: ");
-        int numObstacles = scanner.nextInt();
-
-        MazeGame mazeGame = new MazeGame(rows, cols, numObstacles); 
-
-        while (true) {
-            mazeGame.printMaze();
-
-            System.out.print("Enter direction for player (up/down/left/right): ");
-            String playerDirection = scanner.next();
-            mazeGame.movePlayer(playerDirection);
-
-            mazeGame.moveAiAgent();
-
-            // Check if the player has reached a treasure
-            if (mazeGame.maze[mazeGame.playerRow][mazeGame.playerCol] == TREASURE) {
-                System.out.println("Congratulations! You found a treasure.");
-                break;
+    public boolean allTreasuresFound() {
+        for (int i = 0; i < maze.length; i++) {
+            for (int j = 0; j < maze[0].length; j++) {
+                if (maze[i][j] == TREASURE) {
+                    return false;
+                }
             }
         }
-
-        scanner.close();
+        return true;
     }
+
+
 }
