@@ -1,3 +1,6 @@
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -10,8 +13,11 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.scene.Node;
+import javafx.util.Duration;
 
 import java.util.*;
 
@@ -22,7 +28,7 @@ public class MazeGame extends Application {
 
     private static final int MAZE_SIZE = 10;
     private static final int NUM_OBSTACLES = 15;
-    private static final int NUM_PENALTIES = 5;
+    private static final int NUM_PENALTIES = 3;
     private static final int NUM_TREASURES = 5;
 
     private static final char EMPTY_CELL = '.';
@@ -32,6 +38,10 @@ public class MazeGame extends Application {
     private static final char AI_AGENT = 'A';
     private static final char PENALTY = 'X';
 
+    private Label penaltyLabel;
+    private Timeline penaltyTimeline;
+
+
     private Random random = new Random();
 
     private char[][] maze;
@@ -39,6 +49,9 @@ public class MazeGame extends Application {
     private int playerCol;
     private int aiAgentRow;
     private int aiAgentCol;
+
+    AIPlayer aiPlayer=new AIPlayer();
+    HumanPlayer humanPlayer=new HumanPlayer();
 
     public static void main(String[] args) {
         launch(StartMenu.class);
@@ -74,6 +87,7 @@ public class MazeGame extends Application {
 
         Button backToStartButton = new Button("Go Back to Start Menu");
         backToStartButton.setStyle("-fx-focus-traversable: false;");
+
         backToStartButton.setOnAction(e -> {
             primaryStage.close();
             StartMenu startMenu = new StartMenu();
@@ -83,6 +97,7 @@ public class MazeGame extends Application {
 
         Button exitButton = new Button("Exit");
         exitButton.setStyle("-fx-focus-traversable: false;");
+
         exitButton.setOnAction(e -> primaryStage.close());
 
 
@@ -94,12 +109,29 @@ public class MazeGame extends Application {
         VBox vBox = new VBox(10);
         vBox.getChildren().addAll(headerLabel, buttonsHBox, mazeGrid);
         vBox.setAlignment(Pos.CENTER);
-        vBox.setBackground(Background.fill(Color.LIMEGREEN));
+        vBox.setBackground(Background.fill(Color.LIGHTGREEN));
 
-        StackPane root = new StackPane();
-        root.getChildren().add(vBox);
+        VBox overlay = new VBox();
+        overlay.setAlignment(Pos.CENTER);
 
-        Scene scene = new Scene(root, 610, 700);
+        overlay.setMouseTransparent(true);
+
+
+        penaltyLabel = new Label();
+
+        overlay.getChildren().add(penaltyLabel);
+
+        StackPane overlayPane = new StackPane();
+        overlayPane.getChildren().addAll(vBox, overlay);
+
+        Scene scene = new Scene(overlayPane, 610, 700);
+
+
+        penaltyTimeline = new Timeline(new KeyFrame(Duration.seconds(2), event -> {
+            penaltyLabel.setText("");
+            penaltyLabel.setVisible(false);
+        }));
+        penaltyTimeline.setCycleCount(1);
 
 
         primaryStage.setResizable(false);
@@ -141,6 +173,9 @@ public class MazeGame extends Application {
                 }
 
                 if (allTreasuresFound()) {
+                    Stage currentStage = (Stage) primaryStage.getScene().getWindow();
+                    currentStage.close();
+
                     printGameResult(primaryStage);
                 }
             }
@@ -150,9 +185,24 @@ public class MazeGame extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
+    private void displayPenaltyMessage(String message) {
+        penaltyLabel.setText(message);
+        penaltyLabel.setVisible(true);
 
 
+        penaltyLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
+        penaltyLabel.setTextFill(Color.RED);
+
+
+        penaltyLabel.setOpacity(1.0);
+
+
+        FadeTransition fadeOut = new FadeTransition(Duration.seconds(2), penaltyLabel);
+        fadeOut.setToValue(0);
+
+        fadeOut.play();
+    }
     private Button createRestartButton(Stage primaryStage) {
         Button restartButton = new Button("Restart Game");
         restartButton.setStyle("-fx-focus-traversable: false;");
@@ -165,6 +215,7 @@ public class MazeGame extends Application {
 
         return restartButton;
     }
+
 
 
     private void printGameResult(Stage primaryStage) {
@@ -205,6 +256,15 @@ public class MazeGame extends Application {
         });
 
 
+        Button backToStartButton = new Button("Go Back to Start Menu");
+        backToStartButton.setStyle("-fx-focus-traversable: false;");
+        backToStartButton.setOnAction(e -> {
+            primaryStage.close();
+            scoreChartStage.close();
+            StartMenu startMenu = new StartMenu();
+            startMenu.start(new Stage());
+        });
+
 
 
         Image scoreTableBackground = new Image("file:assets/pngwing.com (12).png");
@@ -239,7 +299,7 @@ public class MazeGame extends Application {
         VBox layout = new VBox(10);
         layout.setAlignment(Pos.CENTER);
         layout.setBackground(new Background(background));
-        layout.getChildren().addAll(headerLabel, playerScoreLabel, aiScoreLabel, winnerLabel, restartButton, exitButton);
+        layout.getChildren().addAll(headerLabel, playerScoreLabel, aiScoreLabel, winnerLabel, restartButton, exitButton,backToStartButton);
 
         Scene scoreChartScene = new Scene(layout, 700, 550);
         scoreChartStage.setResizable(false);
@@ -294,7 +354,7 @@ public class MazeGame extends Application {
                         cellNode = createImageView("file:assets/treasure3.png");
                         break;
                     case PENALTY:
-                        cellNode = createColoredRectangle(Color.GRAY);
+                        cellNode = createImageView("file:assets/blank.png");
                         break;
                     default:
                         cellNode = createImageView("file:assets/blank.png");
@@ -320,45 +380,6 @@ public class MazeGame extends Application {
     }
 
 
-    private void gameLoop(GridPane mazeGrid) {
-        Scanner scanner = new Scanner(System.in);
-
-        while (true) {
-            Platform.runLater(() -> updateMazeGrid(mazeGrid));
-
-            System.out.print("Enter direction for player (up/down/left/right): ");
-            String playerDirection = scanner.next();
-            movePlayer(playerDirection);
-
-            moveAiAgent();
-
-
-            if (maze[playerRow][playerCol] == TREASURE) {
-                System.out.println("Congratulations! You found a treasure.");
-                break;
-            }
-
-            if (allTreasuresFound()) {
-                System.out.println("Congratulations! You found all treasures. Game over!");
-                break;
-            }
-
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        scanner.close();
-    }
-
-    public MazeGame(int rows, int cols, int numObstacles, int numPenalties) {
-        maze = generateMaze(rows, cols, numObstacles, numPenalties);
-
-        initializePlayers();
-        placeTreasures(5);
-    }
 
     private char[][] generateMaze(int rows, int cols, int numObstacles, int numPenalties) {
         char[][] newMaze = new char[rows][cols];
@@ -404,15 +425,19 @@ public class MazeGame extends Application {
 
     private void initializePlayers() {
         Random random = new Random();
+
         playerRow = random.nextInt(maze.length - 2) + 1;
         playerCol = random.nextInt(maze[0].length - 2) + 1;
 
-        aiAgentRow = random.nextInt(maze.length - 2) + 1;
-        aiAgentCol = random.nextInt(maze[0].length - 2) + 1;
+        do {
+            aiAgentRow = random.nextInt(maze.length - 2) + 1;
+            aiAgentCol = random.nextInt(maze[0].length - 2) + 1;
+        } while (aiAgentRow == playerRow && aiAgentCol == playerCol);
 
         maze[playerRow][playerCol] = PLAYER;
         maze[aiAgentRow][aiAgentCol] = AI_AGENT;
     }
+
 
     private void placeTreasures(int numTreasures) {
         int emptyCellCount = countEmptyCells();
@@ -452,19 +477,6 @@ public class MazeGame extends Application {
     }
 
 
-    private void printMaze() {
-        for (int i = 0; i < maze.length; i++) {
-            for (int j = 0; j < maze[0].length; j++) {
-                char displayChar = maze[i][j];
-                if (displayChar == PENALTY) {
-                    displayChar = EMPTY_CELL;
-                }
-                System.out.print(displayChar + " ");
-            }
-            System.out.println();
-        }
-        System.out.println();
-    }
 
 
     private boolean isValidMove(int row, int col) {
@@ -475,6 +487,7 @@ public class MazeGame extends Application {
     private void movePlayer(String direction) {
         int newRow = playerRow;
         int newCol = playerCol;
+        String message="Player got a penalty. Moving away from the treasure.";
 
         switch (direction.toLowerCase()) {
             case "up":
@@ -498,6 +511,9 @@ public class MazeGame extends Application {
             if (maze[newRow][newCol] == PENALTY) {
                 System.out.println("Player received a penalty! Moving away from the closest treasures.");
                 moveAwayFromTreasures(playerRow, playerCol);
+
+                displayPenaltyMessage(message);
+                updatePenaltyLocation(newRow,newCol);
                 return;
             }
 
@@ -511,21 +527,41 @@ public class MazeGame extends Application {
         Cell closestTreasure = findNearestTreasure(row, col);
 
         if (closestTreasure != null) {
-            int newRow = row;
-            int newCol = col;
+            int newRow;
+            int newCol;
 
-            int rowDifference = closestTreasure.row - row;
-            int colDifference = closestTreasure.col - col;
-
-
+            // Calculate the initial position
             newRow = row + Integer.compare(row, closestTreasure.row) * 3;
             newCol = col + Integer.compare(col, closestTreasure.col) * 3;
 
-
+            // Adjust the position to be within maze boundaries
             newRow = Math.max(1, Math.min(newRow, maze.length - 2));
             newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
 
+            // Check if the initial position is a wall
+            if (maze[newRow][newCol] == WALL) {
+                // Calculate a new position further away from the treasure
+                int rowDifference = closestTreasure.row - row;
+                int colDifference = closestTreasure.col - col;
 
+                newRow = row - Integer.compare(row, closestTreasure.row) * 3;
+                newCol = col - Integer.compare(col, closestTreasure.col) * 3;
+
+                // Adjust the new position to be within maze boundaries
+                newRow = Math.max(1, Math.min(newRow, maze.length - 2));
+                newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+
+                // Check if the new position is a wall; if it is, adjust further
+                while (maze[newRow][newCol] == WALL) {
+                    newRow += Integer.compare(rowDifference, 0);
+                    newCol += Integer.compare(colDifference, 0);
+
+                    newRow = Math.max(1, Math.min(newRow, maze.length - 2));
+                    newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+                }
+            }
+
+            // Update the player or AI agent position in the maze
             if (row == playerRow && col == playerCol) {
                 maze[playerRow][playerCol] = EMPTY_CELL;
                 playerRow = newRow;
@@ -539,6 +575,7 @@ public class MazeGame extends Application {
             }
         }
     }
+
 
 
     private void performMove(int newRow, int newCol) {
@@ -555,11 +592,11 @@ public class MazeGame extends Application {
 
     private void moveAiAgent() {
         List<Cell> path = findPathAStar();
+        String message="Ai got a penalty.Moving away from the treasure.";
 
         if (path != null && !path.isEmpty()) {
 
             Cell nextCell = path.get(0);
-
 
             if (nextCell.row == playerRow && nextCell.col == playerCol) {
                 System.out.println("AI agent is waiting for its next turn.");
@@ -568,6 +605,8 @@ public class MazeGame extends Application {
                 if (maze[nextCell.row][nextCell.col] == PENALTY) {
                     System.out.println("AI agent received a penalty! Moving away from the closest treasures.");
                     moveAwayFromTreasures(aiAgentRow, aiAgentCol);
+                    displayPenaltyMessage(message);
+                    updatePenaltyLocation(nextCell.row,nextCell.col);
                     return;
                 }
                 if (maze[nextCell.row][nextCell.col] == TREASURE) {
@@ -582,6 +621,17 @@ public class MazeGame extends Application {
 
             }
         }
+    }
+
+    private void updatePenaltyLocation(int penaltyRow, int penaltyCol) {
+        int newRow, newCol;
+        do {
+            newRow = random.nextInt(maze.length - 2) + 1;
+            newCol = random.nextInt(maze[0].length - 2) + 1;
+        } while (maze[newRow][newCol] != EMPTY_CELL);
+
+        maze[penaltyRow][penaltyCol] = EMPTY_CELL;
+        maze[newRow][newCol] = PENALTY;
     }
 
 
@@ -665,6 +715,7 @@ public class MazeGame extends Application {
 
     private Cell findNearestTreasure(int row, int col) {
         List<Cell> treasures = new ArrayList<>();
+
         for (int i = 0; i < maze.length; i++) {
             for (int j = 0; j < maze[0].length; j++) {
                 if (maze[i][j] == TREASURE) {
@@ -677,7 +728,6 @@ public class MazeGame extends Application {
             return null;
         }
 
-
         treasures.sort(Comparator.comparingInt(cell -> Math.abs(row - cell.row) + Math.abs(col - cell.col)));
         return treasures.get(0);
     }
@@ -685,7 +735,7 @@ public class MazeGame extends Application {
     private static class Cell {
         int row;
         int col;
-        int fScore; // Combined cost of gScore and heuristic (f = g + h)
+        int fScore;
 
         Cell(int row, int col) {
             this.row = row;
@@ -706,11 +756,6 @@ public class MazeGame extends Application {
         }
     }
 
-    public void removeTreasure(int row, int col) {
-        if (maze[row][col] == TREASURE) {
-            maze[row][col] = EMPTY_CELL;
-        }
-    }
 
     public boolean allTreasuresFound() {
         for (int i = 0; i < maze.length; i++) {
