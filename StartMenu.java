@@ -24,7 +24,7 @@ public class StartMenu extends Application {
         primaryStage.setTitle("Treasure Hunt");
 
 
-        Image headerImage = new Image("file:assets/pngwing.com (3).png");
+        Image headerImage = new Image("file:assets/pngwing.com (37).png");
         ImageView headerImageView = new ImageView(headerImage);
 
 
@@ -52,7 +52,7 @@ public class StartMenu extends Application {
         root.setAlignment(Pos.CENTER);
         root.setBackground(new Background(background));
 
-        InputStream stream = getClass().getResourceAsStream("/assets/Skullsandcrossbones-RppKM.ttf");
+        InputStream stream = getClass().getResourceAsStream("/assets/Treasuremap-Ea1vj.ttf");
         String fontName = "Skulls and Crossbones";
         Label titleLabel = new Label();
 
@@ -66,13 +66,13 @@ public class StartMenu extends Application {
                     System.err.println("Error loading font");
                 } else {
 
-                    String fontPath = getClass().getResource("/assets/Skullsandcrossbones-RppKM.ttf").toExternalForm();  // Note the leading '/' for an absolute path
+                    String fontPath = getClass().getResource("/assets/Treasuremap-Ea1vj.ttf").toExternalForm();  // Note the leading '/' for an absolute path
                     System.out.println("Font loaded successfully from: " + fontPath);
 
 
                     titleLabel = new Label("Treasure\n Hunt");
                     String postScriptName = loadedFont.getName();
-                    titleLabel.setStyle("-fx-font-size: 50; -fx-font-weight: 800; -fx-text-fill: black; -fx-font-family: '" + postScriptName + "';");
+                    titleLabel.setStyle("-fx-font-size: 40; -fx-font-weight: 800; -fx-text-fill: black; -fx-font-family: '" + postScriptName + "';");
 
 
                     System.out.println("Font name: " + loadedFont.getName());
