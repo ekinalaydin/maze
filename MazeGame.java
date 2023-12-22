@@ -50,6 +50,7 @@ public class MazeGame extends Application {
     private int aiAgentRow;
     private int aiAgentCol;
 
+
     AIPlayer aiPlayer=new AIPlayer();
     HumanPlayer humanPlayer=new HumanPlayer();
 
@@ -424,7 +425,7 @@ public class MazeGame extends Application {
 
 
     private void initializePlayers() {
-        Random random = new Random();
+
 
         playerRow = random.nextInt(maze.length - 2) + 1;
         playerCol = random.nextInt(maze[0].length - 2) + 1;
@@ -510,7 +511,7 @@ public class MazeGame extends Application {
         if (isValidMove(newRow, newCol)) {
             if (maze[newRow][newCol] == PENALTY) {
                 System.out.println("Player received a penalty! Moving away from the closest treasures.");
-                moveAwayFromTreasures(playerRow, playerCol);
+                moveAwayFromClosestTreasure(playerRow, playerCol);
 
                 displayPenaltyMessage(message);
                 updatePenaltyLocation(newRow,newCol);
@@ -523,45 +524,46 @@ public class MazeGame extends Application {
         }
     }
 
-    private void moveAwayFromTreasures(int row, int col) {
+    private void moveAwayFromClosestTreasure(int row, int col) {
         Cell closestTreasure = findNearestTreasure(row, col);
 
         if (closestTreasure != null) {
-            int newRow;
-            int newCol;
+            int newRow = row;
+            int newCol = col;
 
-            // Calculate the initial position
+            int rowDifference = closestTreasure.row - row;
+            int colDifference = closestTreasure.col - col;
+
+
             newRow = row + Integer.compare(row, closestTreasure.row) * 3;
             newCol = col + Integer.compare(col, closestTreasure.col) * 3;
 
-            // Adjust the position to be within maze boundaries
+
             newRow = Math.max(1, Math.min(newRow, maze.length - 2));
             newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
 
-            // Check if the initial position is a wall
-            if (maze[newRow][newCol] == WALL) {
-                // Calculate a new position further away from the treasure
-                int rowDifference = closestTreasure.row - row;
-                int colDifference = closestTreasure.col - col;
+            while(maze[newRow][newCol]==WALL){
+                int number = random.nextInt(2);
+                int addNumber = random.nextInt(5) - 2;
 
-                newRow = row - Integer.compare(row, closestTreasure.row) * 3;
-                newCol = col - Integer.compare(col, closestTreasure.col) * 3;
+                int tempNewRow = newRow;
+                int tempNewCol = newCol;
 
-                // Adjust the new position to be within maze boundaries
-                newRow = Math.max(1, Math.min(newRow, maze.length - 2));
-                newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+                if (number == 0) {
+                    tempNewRow += addNumber;
+                } else {
+                    tempNewCol += addNumber;
+                }
 
-                // Check if the new position is a wall; if it is, adjust further
-                while (maze[newRow][newCol] == WALL) {
-                    newRow += Integer.compare(rowDifference, 0);
-                    newCol += Integer.compare(colDifference, 0);
+                tempNewRow = Math.max(1, Math.min(tempNewRow, maze.length - 2));
+                tempNewCol = Math.max(1, Math.min(tempNewCol, maze[0].length - 2));
 
-                    newRow = Math.max(1, Math.min(newRow, maze.length - 2));
-                    newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+                if (maze[tempNewRow][tempNewCol] != WALL) {
+                    newRow = tempNewRow;
+                    newCol = tempNewCol;
                 }
             }
 
-            // Update the player or AI agent position in the maze
             if (row == playerRow && col == playerCol) {
                 maze[playerRow][playerCol] = EMPTY_CELL;
                 playerRow = newRow;
@@ -604,7 +606,7 @@ public class MazeGame extends Application {
 
                 if (maze[nextCell.row][nextCell.col] == PENALTY) {
                     System.out.println("AI agent received a penalty! Moving away from the closest treasures.");
-                    moveAwayFromTreasures(aiAgentRow, aiAgentCol);
+                    moveAwayFromClosestTreasure(aiAgentRow, aiAgentCol);
                     displayPenaltyMessage(message);
                     updatePenaltyLocation(nextCell.row,nextCell.col);
                     return;
