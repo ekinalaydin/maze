@@ -361,6 +361,16 @@ public class MazeGame extends Application {
                         cellNode = createImageView("file:assets/blank.png");
                         break;
                 }
+                // Check if both AI agent and player are on the same cell
+                if (maze[i][j] == PLAYER && maze[i][j] == AI_AGENT) {
+                    ImageView playerImageView = createImageView("file:assets/player3.png");
+                    ImageView aiAgentImageView = createImageView("file:assets/ai3.png");
+
+                    StackPane stackPane = new StackPane();
+                    stackPane.getChildren().addAll(playerImageView, aiAgentImageView);
+
+                    cellNode = stackPane;
+                }
 
                 mazeGrid.add(cellNode, j, i);
             }
@@ -511,7 +521,7 @@ public class MazeGame extends Application {
         if (isValidMove(newRow, newCol)) {
             if (maze[newRow][newCol] == PENALTY) {
                 System.out.println("Player received a penalty! Moving away from the closest treasures.");
-                moveAwayFromClosestTreasure(playerRow, playerCol);
+                movePlayerAwayFromClosestTreasure(playerRow, playerCol);
 
                 displayPenaltyMessage(message);
                 updatePenaltyLocation(newRow,newCol);
@@ -524,19 +534,71 @@ public class MazeGame extends Application {
         }
     }
 
-    private void moveAwayFromClosestTreasure(int row, int col) {
-        Cell closestTreasure = findNearestTreasure(row, col);
+    private void moveAIAwayFromClosestTreasure(int aiAgentRow, int aiAgentCol) {
+        Cell closestTreasure = findNearestTreasure(aiAgentRow, aiAgentCol);
 
         if (closestTreasure != null) {
-            int newRow = row;
-            int newCol = col;
+            int newRow = aiAgentRow;
+            int newCol = aiAgentCol;
 
-            int rowDifference = closestTreasure.row - row;
-            int colDifference = closestTreasure.col - col;
+            int rowDifference = closestTreasure.row - aiAgentRow;
+            int colDifference = closestTreasure.col - aiAgentCol;
 
 
-            newRow = row + Integer.compare(row, closestTreasure.row) * 3;
-            newCol = col + Integer.compare(col, closestTreasure.col) * 3;
+            newRow = aiAgentRow + Integer.compare(aiAgentRow, closestTreasure.row) * 3;
+            newCol = aiAgentCol + Integer.compare(aiAgentCol, closestTreasure.col) * 3;
+
+
+            newRow = Math.max(1, Math.min(newRow, maze.length - 2));
+            newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
+
+            while(maze[newRow][newCol]==WALL){
+                int number = random.nextInt(2);
+                int addNumber = random.nextInt(5) - 2;
+
+                int tempNewRow = newRow;
+                int tempNewCol = newCol;
+
+                if (number == 0) {
+                    tempNewRow += addNumber;
+                } else {
+                    tempNewCol += addNumber;
+                }
+
+                tempNewRow = Math.max(1, Math.min(tempNewRow, maze.length - 2));
+                tempNewCol = Math.max(1, Math.min(tempNewCol, maze[0].length - 2));
+
+                if (maze[tempNewRow][tempNewCol] != WALL) {
+                    newRow = tempNewRow;
+                    newCol = tempNewCol;
+                }
+            }
+            if(this.aiAgentRow==playerCol&&this.aiAgentCol==playerRow){
+                maze[this.aiAgentRow][this.aiAgentCol] =PLAYER;
+            }
+            else{
+                maze[this.aiAgentRow][this.aiAgentCol] = EMPTY_CELL;
+
+            }
+            this.aiAgentRow = newRow;
+            this.aiAgentCol = newCol;
+            maze[this.aiAgentRow][this.aiAgentCol] = AI_AGENT;
+
+        }
+    }
+    private void movePlayerAwayFromClosestTreasure(int playerRow, int playerCol) {
+        Cell closestTreasure = findNearestTreasure(playerRow, playerCol);
+
+        if (closestTreasure != null) {
+            int newRow = playerRow;
+            int newCol = playerCol;
+
+            int rowDifference = closestTreasure.row - playerRow;
+            int colDifference = closestTreasure.col - playerCol;
+
+
+            newRow = playerRow + Integer.compare(playerRow, closestTreasure.row) * 3;
+            newCol = playerCol + Integer.compare(playerCol, closestTreasure.col) * 3;
 
 
             newRow = Math.max(1, Math.min(newRow, maze.length - 2));
@@ -564,17 +626,17 @@ public class MazeGame extends Application {
                 }
             }
 
-            if (row == playerRow && col == playerCol) {
-                maze[playerRow][playerCol] = EMPTY_CELL;
-                playerRow = newRow;
-                playerCol = newCol;
-                maze[playerRow][playerCol] = PLAYER;
-            } else if (row == aiAgentRow && col == aiAgentCol) {
-                maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
-                aiAgentRow = newRow;
-                aiAgentCol = newCol;
-                maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+            if(this.playerCol==aiAgentCol&&this.playerRow==aiAgentRow){
+                maze[this.playerRow][this.playerCol] =AI_AGENT;
             }
+            else{
+                maze[this.playerRow][this.playerCol] = EMPTY_CELL;
+
+            }
+            this.playerRow = newRow;
+            this.playerCol = newCol;
+            maze[this.playerRow][this.playerCol] = PLAYER;
+
         }
     }
 
@@ -586,10 +648,21 @@ public class MazeGame extends Application {
             playerScore++;
         }
 
-        maze[playerRow][playerCol] = EMPTY_CELL;
+        if(playerRow==aiAgentRow&&playerCol==aiAgentCol){
+            maze[playerRow][playerCol] = AI_AGENT;
+        }else{
+            maze[playerRow][playerCol] = EMPTY_CELL;
+        }
+
         playerRow = newRow;
         playerCol = newCol;
-        maze[playerRow][playerCol] = PLAYER;
+        if(maze[playerRow][playerCol]==AI_AGENT){
+            maze[playerRow][playerCol]=PLAYER;
+            maze[playerRow][playerCol]=AI_AGENT;
+        }else{
+            maze[playerRow][playerCol] = PLAYER;
+        }
+
     }
 
     private void moveAiAgent() {
@@ -606,7 +679,7 @@ public class MazeGame extends Application {
 
                 if (maze[nextCell.row][nextCell.col] == PENALTY) {
                     System.out.println("AI agent received a penalty! Moving away from the closest treasures.");
-                    moveAwayFromClosestTreasure(aiAgentRow, aiAgentCol);
+                    moveAIAwayFromClosestTreasure(aiAgentRow, aiAgentCol);
                     displayPenaltyMessage(message);
                     updatePenaltyLocation(nextCell.row,nextCell.col);
                     return;
@@ -615,11 +688,17 @@ public class MazeGame extends Application {
                     System.out.println("AI agent found a treasure.");
                     aiScore++;
                 }
+                if(aiAgentCol==playerCol&&aiAgentRow==playerRow){
+                    maze[aiAgentRow][aiAgentCol] = PLAYER;
 
-                maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
+                }else{
+                    maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
+
+                }
                 aiAgentRow = nextCell.row;
                 aiAgentCol = nextCell.col;
                 maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+
 
             }
         }
