@@ -91,7 +91,6 @@ public class StartMenu extends Application {
 
         root.getChildren().addAll(titleHeaderBox, startButton, exitButton);
 
-        // Create scene
         Scene scene = new Scene(root, 600, 600);
         primaryStage.setResizable(false);
         primaryStage.setScene(scene);

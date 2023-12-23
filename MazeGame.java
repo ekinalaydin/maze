@@ -26,40 +26,35 @@ public class MazeGame extends Application {
     public MazeGame() {
     }
 
-    private static final int MAZE_SIZE = 10;
-    private static final int NUM_OBSTACLES = 15;
-    private static final int NUM_PENALTIES = 3;
-    private static final int NUM_TREASURES = 5;
+    public static final int MAZE_SIZE = 10;
+    public static final int NUM_OBSTACLES = 15;
+    public static final int NUM_PENALTIES = 3;
+    public static final int NUM_TREASURES = 5;
 
-    private static final char EMPTY_CELL = '.';
-    private static final char WALL = '#';
-    private static final char PLAYER = 'P';
-    private static final char TREASURE = 'T';
-    private static final char AI_AGENT = 'A';
-    private static final char PENALTY = 'X';
+    public static final char EMPTY_CELL = '.';
+    public static final char WALL = '#';
+    public static final char PLAYER = 'P';
+    public static final char TREASURE = 'T';
+    public static final char AI_AGENT = 'A';
+    public static final char PENALTY = 'X';
 
-    private Label penaltyLabel;
-    private Timeline penaltyTimeline;
-
-
-    private Random random = new Random();
-
-    private char[][] maze;
-    private int playerRow;
-    private int playerCol;
-    private int aiAgentRow;
-    private int aiAgentCol;
+    public static Label penaltyLabel;
+    public Timeline penaltyTimeline;
 
 
-    AIPlayer aiPlayer=new AIPlayer();
-    HumanPlayer humanPlayer=new HumanPlayer();
+    public static Random random = new Random();
+
+    public static char[][] maze;
+
+
+    public static AIPlayer aiPlayer=new AIPlayer();
+    public static HumanPlayer humanPlayer=new HumanPlayer();
 
     public static void main(String[] args) {
         launch(StartMenu.class);
     }
 
-    private int playerScore = 0;
-    private int aiScore = 0;
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -141,37 +136,28 @@ public class MazeGame extends Application {
 
         scene.setOnKeyPressed(event -> {
             KeyCode code = event.getCode();
-            String direction = null;
-
-            switch (code) {
-                case UP:
-                    direction = "up";
-                    break;
-                case DOWN:
-                    direction = "down";
-                    break;
-                case LEFT:
-                    direction = "left";
-                    break;
-                case RIGHT:
-                    direction = "right";
-                    break;
-            }
+            String direction = switch (code) {
+                case UP -> "up";
+                case DOWN -> "down";
+                case LEFT -> "left";
+                case RIGHT -> "right";
+                default -> null;
+            };
 
             if (direction != null) {
-                movePlayer(direction);
-                moveAiAgent();
+                humanPlayer.movePlayer(direction);
+                aiPlayer.moveAiAgent();
                 updateMazeGrid(mazeGrid);
 
-                if (maze[playerRow][playerCol] == TREASURE) {
+                if (maze[humanPlayer.playerRow][humanPlayer.playerCol] == TREASURE) {
                     System.out.println("Congratulations! You found a treasure.");
-                    playerScore++;
+                    humanPlayer.playerScore++;
                 }
 
-                if (maze[aiAgentRow][aiAgentCol] == TREASURE) {
+                if (maze[aiPlayer.aiAgentRow][aiPlayer.aiAgentCol] == TREASURE) {
                     System.out.println("AI agent found a treasure.");
-                    aiScore++;
-                }
+                    aiPlayer.aiScore++;
+                }//ai son aldığı scoru saymıyo
 
                 if (allTreasuresFound()) {
                     Stage currentStage = (Stage) primaryStage.getScene().getWindow();
@@ -186,7 +172,7 @@ public class MazeGame extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-    private void displayPenaltyMessage(String message) {
+    public static void displayPenaltyMessage(String message) {
         penaltyLabel.setText(message);
         penaltyLabel.setVisible(true);
 
@@ -204,12 +190,12 @@ public class MazeGame extends Application {
 
         fadeOut.play();
     }
-    private Button createRestartButton(Stage primaryStage) {
+    public Button createRestartButton(Stage primaryStage) {
         Button restartButton = new Button("Restart Game");
         restartButton.setStyle("-fx-focus-traversable: false;");
         restartButton.setOnAction(e -> {
-            aiScore = 0;
-            playerScore = 0;
+            aiPlayer.aiScore = 0;
+            humanPlayer.playerScore = 0;
             primaryStage.close();
             start(new Stage());
         });
@@ -219,15 +205,15 @@ public class MazeGame extends Application {
 
 
 
-    private void printGameResult(Stage primaryStage) {
+    public void printGameResult(Stage primaryStage) {
         System.out.println("Game Over!");
 
-        System.out.println("Player Score: " + playerScore);
-        System.out.println("AI Score: " + aiScore);
+        System.out.println("Player Score: " + humanPlayer.playerScore);
+        System.out.println("AI Score: " + aiPlayer.aiScore);
 
-        if (playerScore > aiScore) {
+        if (humanPlayer.playerScore > aiPlayer.aiScore) {
             System.out.println("You won!");
-        } else if (aiScore > playerScore) {
+        } else if (aiPlayer.aiScore > humanPlayer.playerScore) {
             System.out.println("AI won!");
         } else {
             System.out.println("It's a tie!");
@@ -240,8 +226,8 @@ public class MazeGame extends Application {
         Button restartButton = new Button("Restart Game");
         restartButton.setStyle("-fx-focus-traversable: false; -fx-font-family: 'Bookman Old Style'; -fx-font-size: 14;");
         restartButton.setOnAction(e -> {
-            aiScore = 0;
-            playerScore = 0;
+            aiPlayer.aiScore = 0;
+            humanPlayer.playerScore = 0;
             scoreChartStage.close();
             primaryStage.close();
             start(new Stage());
@@ -276,11 +262,11 @@ public class MazeGame extends Application {
         headerLabel.setStyle("-fx-font-size: 60; -fx-font-weight: bold; -fx-font-family: 'Bookman Old Style'");
 
 
-        Label playerScoreLabel = new Label("Player Score: " + playerScore);
+        Label playerScoreLabel = new Label("Player Score: " + humanPlayer.playerScore);
         playerScoreLabel.setStyle("-fx-font-size: 16;");
 
 
-        Label aiScoreLabel = new Label("AI Score: " + aiScore);
+        Label aiScoreLabel = new Label("AI Score: " + aiPlayer.aiScore);
         aiScoreLabel.setStyle("-fx-font-size: 16; -fx-font-family: 'Bookman Old Style'");
 
 
@@ -288,9 +274,9 @@ public class MazeGame extends Application {
         winnerLabel.setStyle("-fx-font-size: 30; -fx-font-weight: bold; -fx-font-family: 'Bookman Old Style'");
 
 
-        if (playerScore > aiScore) {
+        if (humanPlayer.playerScore > aiPlayer.aiScore) {
             winnerLabel.setText("You won!");
-        } else if (aiScore > playerScore) {
+        } else if (aiPlayer.aiScore > humanPlayer.playerScore) {
             winnerLabel.setText("AI won!");
         } else {
             winnerLabel.setText("It's a tie!");
@@ -312,7 +298,7 @@ public class MazeGame extends Application {
     }
 
 
-    private GridPane createMazeGrid() {
+    public GridPane createMazeGrid() {
         GridPane mazeGrid = new GridPane();
         mazeGrid.setHgap(1);
         mazeGrid.setVgap(1);
@@ -332,35 +318,22 @@ public class MazeGame extends Application {
     }
 
 
-    private void updateMazeGrid(GridPane mazeGrid) {
+    public static void updateMazeGrid(GridPane mazeGrid) {
         mazeGrid.getChildren().clear();
 
         for (int i = 0; i < MAZE_SIZE; i++) {
             for (int j = 0; j < MAZE_SIZE; j++) {
                 char cellType = maze[i][j];
 
-                Node cellNode;
+                Node cellNode = switch (cellType) {
+                    case WALL -> createColoredRectangle(Color.BLACK);
+                    case PLAYER -> createImageView("file:assets/player3.png");
+                    case AI_AGENT -> createImageView("file:assets/ai3.png");
+                    case TREASURE -> createImageView("file:assets/treasure3.png");
+                    case PENALTY -> createImageView("file:assets/blank.png");
+                    default -> createImageView("file:assets/blank.png");
+                };
 
-                switch (cellType) {
-                    case WALL:
-                        cellNode = createColoredRectangle(Color.BLACK);
-                        break;
-                    case PLAYER:
-                        cellNode = createImageView("file:assets/player3.png");
-                        break;
-                    case AI_AGENT:
-                        cellNode = createImageView("file:assets/ai3.png");
-                        break;
-                    case TREASURE:
-                        cellNode = createImageView("file:assets/treasure3.png");
-                        break;
-                    case PENALTY:
-                        cellNode = createImageView("file:assets/blank.png");
-                        break;
-                    default:
-                        cellNode = createImageView("file:assets/blank.png");
-                        break;
-                }
                 // Check if both AI agent and player are on the same cell
                 if (maze[i][j] == PLAYER && maze[i][j] == AI_AGENT) {
                     ImageView playerImageView = createImageView("file:assets/player3.png");
@@ -377,13 +350,13 @@ public class MazeGame extends Application {
         }
     }
 
-    private Rectangle createColoredRectangle(Color color) {
+    public static Rectangle createColoredRectangle(Color color) {
         Rectangle rectangle = new Rectangle(60, 60, color);
         rectangle.setStroke(Color.BLACK);
         return rectangle;
     }
 
-    private ImageView createImageView(String imagePath) {
+    public static ImageView createImageView(String imagePath) {
         ImageView imageView = new ImageView(new Image(imagePath));
         imageView.setFitWidth(60);
         imageView.setFitHeight(60);
@@ -392,7 +365,7 @@ public class MazeGame extends Application {
 
 
 
-    private char[][] generateMaze(int rows, int cols, int numObstacles, int numPenalties) {
+    public char[][] generateMaze(int rows, int cols, int numObstacles, int numPenalties) {
         char[][] newMaze = new char[rows][cols];
         Random random = new Random();
 
@@ -434,23 +407,23 @@ public class MazeGame extends Application {
     }
 
 
-    private void initializePlayers() {
+    public void initializePlayers() {
 
 
-        playerRow = random.nextInt(maze.length - 2) + 1;
-        playerCol = random.nextInt(maze[0].length - 2) + 1;
+        humanPlayer.playerRow = random.nextInt(maze.length - 2) + 1;
+        humanPlayer.playerCol = random.nextInt(maze[0].length - 2) + 1;
 
         do {
-            aiAgentRow = random.nextInt(maze.length - 2) + 1;
-            aiAgentCol = random.nextInt(maze[0].length - 2) + 1;
-        } while (aiAgentRow == playerRow && aiAgentCol == playerCol);
+            aiPlayer.aiAgentRow = random.nextInt(maze.length - 2) + 1;
+            aiPlayer.aiAgentCol = random.nextInt(maze[0].length - 2) + 1;
+        } while (aiPlayer.aiAgentRow == humanPlayer.playerRow && aiPlayer.aiAgentCol == MazeGame.humanPlayer.playerCol);
 
-        maze[playerRow][playerCol] = PLAYER;
-        maze[aiAgentRow][aiAgentCol] = AI_AGENT;
+        maze[humanPlayer.playerRow][humanPlayer.playerCol] = PLAYER;
+        maze[aiPlayer.aiAgentRow][aiPlayer.aiAgentCol] = AI_AGENT;
     }
 
 
-    private void placeTreasures(int numTreasures) {
+    public void placeTreasures(int numTreasures) {
         int emptyCellCount = countEmptyCells();
 
         if (emptyCellCount == 0) {
@@ -475,7 +448,7 @@ public class MazeGame extends Application {
         }
     }
 
-    private int countEmptyCells() {
+    public int countEmptyCells() {
         int count = 0;
         for (int i = 1; i < maze.length - 1; i++) {
             for (int j = 1; j < maze[0].length - 1; j++) {
@@ -489,222 +462,14 @@ public class MazeGame extends Application {
 
 
 
-
-    private boolean isValidMove(int row, int col) {
+    public static boolean isValidMove(int row, int col) {
         return row >= 0 && row < maze.length && col >= 0 && col < maze[0].length && maze[row][col] != WALL;
     }
 
 
-    private void movePlayer(String direction) {
-        int newRow = playerRow;
-        int newCol = playerCol;
-        String message="Player got a penalty. Moving away from the treasure.";
-
-        switch (direction.toLowerCase()) {
-            case "up":
-                newRow--;
-                break;
-            case "down":
-                newRow++;
-                break;
-            case "left":
-                newCol--;
-                break;
-            case "right":
-                newCol++;
-                break;
-            default:
-                System.out.println("Invalid direction. Please enter 'up', 'down', 'left', or 'right'.");
-                return;
-        }
-
-        if (isValidMove(newRow, newCol)) {
-            if (maze[newRow][newCol] == PENALTY) {
-                System.out.println("Player received a penalty! Moving away from the closest treasures.");
-                movePlayerAwayFromClosestTreasure(playerRow, playerCol);
-
-                displayPenaltyMessage(message);
-                updatePenaltyLocation(newRow,newCol);
-                return;
-            }
-
-            performMove(newRow, newCol);
-        } else {
-            System.out.println("Invalid move. You cannot go outside the maze or through walls.");
-        }
-    }
-
-    private void moveAIAwayFromClosestTreasure(int aiAgentRow, int aiAgentCol) {
-        Cell closestTreasure = findNearestTreasure(aiAgentRow, aiAgentCol);
-
-        if (closestTreasure != null) {
-            int newRow = aiAgentRow;
-            int newCol = aiAgentCol;
-
-            int rowDifference = closestTreasure.row - aiAgentRow;
-            int colDifference = closestTreasure.col - aiAgentCol;
 
 
-            newRow = aiAgentRow + Integer.compare(aiAgentRow, closestTreasure.row) * 3;
-            newCol = aiAgentCol + Integer.compare(aiAgentCol, closestTreasure.col) * 3;
-
-
-            newRow = Math.max(1, Math.min(newRow, maze.length - 2));
-            newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
-
-            while(maze[newRow][newCol]==WALL){
-                int number = random.nextInt(2);
-                int addNumber = random.nextInt(5) - 2;
-
-                int tempNewRow = newRow;
-                int tempNewCol = newCol;
-
-                if (number == 0) {
-                    tempNewRow += addNumber;
-                } else {
-                    tempNewCol += addNumber;
-                }
-
-                tempNewRow = Math.max(1, Math.min(tempNewRow, maze.length - 2));
-                tempNewCol = Math.max(1, Math.min(tempNewCol, maze[0].length - 2));
-
-                if (maze[tempNewRow][tempNewCol] != WALL) {
-                    newRow = tempNewRow;
-                    newCol = tempNewCol;
-                }
-            }
-            if(this.aiAgentRow==playerCol&&this.aiAgentCol==playerRow){
-                maze[this.aiAgentRow][this.aiAgentCol] =PLAYER;
-            }
-            else{
-                maze[this.aiAgentRow][this.aiAgentCol] = EMPTY_CELL;
-
-            }
-            this.aiAgentRow = newRow;
-            this.aiAgentCol = newCol;
-            maze[this.aiAgentRow][this.aiAgentCol] = AI_AGENT;
-
-        }
-    }
-    private void movePlayerAwayFromClosestTreasure(int playerRow, int playerCol) {
-        Cell closestTreasure = findNearestTreasure(playerRow, playerCol);
-
-        if (closestTreasure != null) {
-            int newRow = playerRow;
-            int newCol = playerCol;
-
-            int rowDifference = closestTreasure.row - playerRow;
-            int colDifference = closestTreasure.col - playerCol;
-
-
-            newRow = playerRow + Integer.compare(playerRow, closestTreasure.row) * 3;
-            newCol = playerCol + Integer.compare(playerCol, closestTreasure.col) * 3;
-
-
-            newRow = Math.max(1, Math.min(newRow, maze.length - 2));
-            newCol = Math.max(1, Math.min(newCol, maze[0].length - 2));
-
-            while(maze[newRow][newCol]==WALL){
-                int number = random.nextInt(2);
-                int addNumber = random.nextInt(5) - 2;
-
-                int tempNewRow = newRow;
-                int tempNewCol = newCol;
-
-                if (number == 0) {
-                    tempNewRow += addNumber;
-                } else {
-                    tempNewCol += addNumber;
-                }
-
-                tempNewRow = Math.max(1, Math.min(tempNewRow, maze.length - 2));
-                tempNewCol = Math.max(1, Math.min(tempNewCol, maze[0].length - 2));
-
-                if (maze[tempNewRow][tempNewCol] != WALL) {
-                    newRow = tempNewRow;
-                    newCol = tempNewCol;
-                }
-            }
-
-            if(this.playerCol==aiAgentCol&&this.playerRow==aiAgentRow){
-                maze[this.playerRow][this.playerCol] =AI_AGENT;
-            }
-            else{
-                maze[this.playerRow][this.playerCol] = EMPTY_CELL;
-
-            }
-            this.playerRow = newRow;
-            this.playerCol = newCol;
-            maze[this.playerRow][this.playerCol] = PLAYER;
-
-        }
-    }
-
-
-
-    private void performMove(int newRow, int newCol) {
-        if (maze[newRow][newCol] == TREASURE) {
-            System.out.println("Congratulations! You found a treasure.");
-            playerScore++;
-        }
-
-        if(playerRow==aiAgentRow&&playerCol==aiAgentCol){
-            maze[playerRow][playerCol] = AI_AGENT;
-        }else{
-            maze[playerRow][playerCol] = EMPTY_CELL;
-        }
-
-        playerRow = newRow;
-        playerCol = newCol;
-        if(maze[playerRow][playerCol]==AI_AGENT){
-            maze[playerRow][playerCol]=PLAYER;
-            maze[playerRow][playerCol]=AI_AGENT;
-        }else{
-            maze[playerRow][playerCol] = PLAYER;
-        }
-
-    }
-
-    private void moveAiAgent() {
-        List<Cell> path = findPathAStar();
-        String message="Ai got a penalty.Moving away from the treasure.";
-
-        if (path != null && !path.isEmpty()) {
-
-            Cell nextCell = path.get(0);
-
-            if (nextCell.row == playerRow && nextCell.col == playerCol) {
-                System.out.println("AI agent is waiting for its next turn.");
-            } else {
-
-                if (maze[nextCell.row][nextCell.col] == PENALTY) {
-                    System.out.println("AI agent received a penalty! Moving away from the closest treasures.");
-                    moveAIAwayFromClosestTreasure(aiAgentRow, aiAgentCol);
-                    displayPenaltyMessage(message);
-                    updatePenaltyLocation(nextCell.row,nextCell.col);
-                    return;
-                }
-                if (maze[nextCell.row][nextCell.col] == TREASURE) {
-                    System.out.println("AI agent found a treasure.");
-                    aiScore++;
-                }
-                if(aiAgentCol==playerCol&&aiAgentRow==playerRow){
-                    maze[aiAgentRow][aiAgentCol] = PLAYER;
-
-                }else{
-                    maze[aiAgentRow][aiAgentCol] = EMPTY_CELL;
-
-                }
-                aiAgentRow = nextCell.row;
-                aiAgentCol = nextCell.col;
-                maze[aiAgentRow][aiAgentCol] = AI_AGENT;
-
-
-            }
-        }
-    }
-
-    private void updatePenaltyLocation(int penaltyRow, int penaltyCol) {
+    public static void updatePenaltyLocation(int penaltyRow, int penaltyCol) {
         int newRow, newCol;
         do {
             newRow = random.nextInt(maze.length - 2) + 1;
@@ -716,85 +481,8 @@ public class MazeGame extends Application {
     }
 
 
-    private List<Cell> findPathAStar() {
-        PriorityQueue<Cell> openSet = new PriorityQueue<>(Comparator.comparingInt(cell -> cell.fScore));
-        Map<Cell, Cell> cameFrom = new HashMap<>();
-        Map<Cell, Integer> gScore = new HashMap<>();
 
-        Cell start = new Cell(aiAgentRow, aiAgentCol);
-        Cell goal = findNearestTreasure(aiAgentRow, aiAgentCol);
-
-        if (goal == null) {
-            return Collections.emptyList();
-        }
-
-        gScore.put(start, 0);
-        start.fScore = heuristicCostEstimate(start, goal);
-        openSet.add(start);
-
-        while (!openSet.isEmpty()) {
-            Cell current = openSet.poll();
-
-            if (current.equals(goal)) {
-                return reconstructPath(cameFrom, current);
-            }
-
-            for (Cell neighbor : getNeighbors(current)) {
-                int tentativeGScore = gScore.getOrDefault(current, Integer.MAX_VALUE) + 1;
-
-                if (tentativeGScore < gScore.getOrDefault(neighbor, Integer.MAX_VALUE)) {
-                    cameFrom.put(neighbor, current);
-                    gScore.put(neighbor, tentativeGScore);
-                    neighbor.fScore = tentativeGScore + heuristicCostEstimate(neighbor, goal);
-
-                    if (!openSet.contains(neighbor)) {
-                        openSet.add(neighbor);
-                    }
-                }
-            }
-        }
-
-        return Collections.emptyList();
-    }
-
-
-    private int heuristicCostEstimate(Cell current, Cell goal) {
-        int dx = Math.abs(current.row - goal.row);
-        int dy = Math.abs(current.col - goal.col);
-        return dx + dy + Math.min(dx, dy);
-    }
-
-
-    private List<Cell> reconstructPath(Map<Cell, Cell> cameFrom, Cell current) {
-        List<Cell> path = new ArrayList<>();
-        while (cameFrom.containsKey(current)) {
-            path.add(current);
-            current = cameFrom.get(current);
-        }
-        Collections.reverse(path);
-        return path;
-    }
-
-    private List<Cell> getNeighbors(Cell cell) {
-        List<Cell> neighbors = new ArrayList<>();
-
-        int[] dr = {-1, 1, 0, 0};
-        int[] dc = {0, 0, -1, 1};
-
-        for (int i = 0; i < 4; i++) {
-            int newRow = cell.row + dr[i];
-            int newCol = cell.col + dc[i];
-
-            if (isValidMove(newRow, newCol)) {
-                neighbors.add(new Cell(newRow, newCol));
-            }
-        }
-
-        return neighbors;
-    }
-
-
-    private Cell findNearestTreasure(int row, int col) {
+    public static Cell findNearestTreasure(int row, int col) {
         List<Cell> treasures = new ArrayList<>();
 
         for (int i = 0; i < maze.length; i++) {
@@ -813,7 +501,7 @@ public class MazeGame extends Application {
         return treasures.get(0);
     }
 
-    private static class Cell {
+    static class Cell {
         int row;
         int col;
         int fScore;
@@ -839,9 +527,9 @@ public class MazeGame extends Application {
 
 
     public boolean allTreasuresFound() {
-        for (int i = 0; i < maze.length; i++) {
+        for (char[] chars : maze) {
             for (int j = 0; j < maze[0].length; j++) {
-                if (maze[i][j] == TREASURE) {
+                if (chars[j] == TREASURE) {
                     return false;
                 }
             }
