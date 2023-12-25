@@ -70,10 +70,7 @@ public class MazeGame extends Application {
         mazeGrid.setFocusTraversable(true);
         updateMazeGrid(mazeGrid);
 
-
-
         List<Image> icons = primaryStage.getIcons();
-        System.out.println("Number of icons added: " + icons.size());
 
         Label headerLabel = new Label("Treasure Hunt");
         headerLabel.setStyle("-fx-font-size: 30; -fx-font-family: 'Bookman Old Style'; -fx-font-weight: bold;");
@@ -148,16 +145,6 @@ public class MazeGame extends Application {
                 humanPlayer.movePlayer(direction);
                 aiPlayer.moveAiAgent();
                 updateMazeGrid(mazeGrid);
-
-                if (maze[humanPlayer.playerRow][humanPlayer.playerCol] == TREASURE) {
-                    System.out.println("Congratulations! You found a treasure.");
-                    humanPlayer.playerScore++;
-                }
-
-                if (maze[aiPlayer.aiAgentRow][aiPlayer.aiAgentCol] == TREASURE) {
-                    System.out.println("AI agent found a treasure.");
-                    aiPlayer.aiScore++;
-                }//ai son aldığı scoru saymıyo
 
                 if (allTreasuresFound()) {
                     Stage currentStage = (Stage) primaryStage.getScene().getWindow();
@@ -325,16 +312,29 @@ public class MazeGame extends Application {
             for (int j = 0; j < MAZE_SIZE; j++) {
                 char cellType = maze[i][j];
 
-                Node cellNode = switch (cellType) {
-                    case WALL -> createColoredRectangle(Color.BLACK);
-                    case PLAYER -> createImageView("file:assets/player3.png");
-                    case AI_AGENT -> createImageView("file:assets/ai3.png");
-                    case TREASURE -> createImageView("file:assets/treasure3.png");
-                    case PENALTY -> createImageView("file:assets/blank.png");
-                    default -> createImageView("file:assets/blank.png");
-                };
+                Node cellNode;
 
-                // Check if both AI agent and player are on the same cell
+                switch (cellType) {
+                    case WALL:
+                        cellNode = createColoredRectangle(Color.BLACK);
+                        break;
+                    case PLAYER:
+                        cellNode = createImageView("file:assets/player3.png");
+                        break;
+                    case AI_AGENT:
+                        cellNode = createImageView("file:assets/ai3.png");
+                        break;
+                    case TREASURE:
+                        cellNode = createImageView("file:assets/treasure3.png");
+                        break;
+                    case PENALTY:
+                        cellNode = createImageView("file:assets/blank.png");
+                        break;
+                    default:
+                        cellNode = createImageView("file:assets/blank.png");
+                        break;
+                }
+
                 if (maze[i][j] == PLAYER && maze[i][j] == AI_AGENT) {
                     ImageView playerImageView = createImageView("file:assets/player3.png");
                     ImageView aiAgentImageView = createImageView("file:assets/ai3.png");

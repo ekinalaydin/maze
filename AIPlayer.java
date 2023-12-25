@@ -1,7 +1,5 @@
 import java.util.*;
 
-import static java.time.zone.ZoneOffsetTransitionRule.TimeDefinition.WALL;
-
 public class AIPlayer {
     public static Random random = new Random();
 
@@ -12,11 +10,8 @@ public class AIPlayer {
         MazeGame.Cell closestTreasure = MazeGame.findNearestTreasure(aiAgentRow, aiAgentCol);
 
         if (closestTreasure != null) {
-            int newRow = aiAgentRow;
-            int newCol = aiAgentCol;
-
-            int rowDifference = closestTreasure.row - aiAgentRow;
-            int colDifference = closestTreasure.col - aiAgentCol;
+            int newRow;
+            int newCol;
 
 
             newRow = aiAgentRow + Integer.compare(aiAgentRow, closestTreasure.row) * 3;
@@ -94,7 +89,6 @@ public class AIPlayer {
                 aiAgentCol = nextCell.col;
                 MazeGame.maze[aiAgentRow][aiAgentCol] = MazeGame.AI_AGENT;
 
-
             }
         }
     }
@@ -125,12 +119,14 @@ public class AIPlayer {
                 int tentativeGScore = gScore.getOrDefault(current, Integer.MAX_VALUE) + 1;
 
                 if (tentativeGScore < gScore.getOrDefault(neighbor, Integer.MAX_VALUE)) {
+
                     cameFrom.put(neighbor, current);
                     gScore.put(neighbor, tentativeGScore);
                     neighbor.fScore = tentativeGScore + heuristicCostEstimate(neighbor, goal);
 
                     if (!openSet.contains(neighbor)) {
                         openSet.add(neighbor);
+
                     }
                 }
             }
@@ -172,8 +168,6 @@ public class AIPlayer {
 
         return neighbors;
     }
-
-
 
 
 }

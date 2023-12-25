@@ -1,12 +1,5 @@
-import javafx.animation.FadeTransition;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.util.Duration;
-
 import java.util.Random;
 
-import static java.time.zone.ZoneOffsetTransitionRule.TimeDefinition.WALL;
 
 public class HumanPlayer {
     public int playerRow;
@@ -48,11 +41,8 @@ public class HumanPlayer {
         MazeGame.Cell closestTreasure = MazeGame.findNearestTreasure(playerRow, playerCol);
 
         if (closestTreasure != null) {
-            int newRow = playerRow;
-            int newCol = playerCol;
-
-            int rowDifference = closestTreasure.row - playerRow;
-            int colDifference = closestTreasure.col - playerCol;
+            int newRow;
+            int newCol;
 
 
             newRow = playerRow + Integer.compare(playerRow, closestTreasure.row) * 3;
